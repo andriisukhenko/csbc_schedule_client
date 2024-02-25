@@ -5,3 +5,7 @@
         </v-app>
     </NuxtLayout>
 </template>
+
+<script lang="ts">
+export default { name: "AppMainLayout" };
+</script>
