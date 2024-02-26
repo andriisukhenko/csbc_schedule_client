@@ -6,7 +6,7 @@ export class ApiHTTP extends Http {
     }
 
     check() {
-        return this.get("/");
+        return this.get();
     }
 }
 
