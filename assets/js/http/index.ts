@@ -1,6 +1,4 @@
-import { camelizeObject, decamelizeObject } from "~/assets/js/helpers";
-
-enum Methods {
+export enum Methods {
     GET = 'GET',
     POST = 'POST',
     PUT = 'PUT',
@@ -17,26 +15,38 @@ export interface HttpArgs {
     config?: { [key: string]: any }
 }
 
-interface RequestData {
-    method?: Methods
+export interface RequestData {
+    method?: Methods,
     data?: { [key: string]: any } | FormData,
-    headers?: { [key: string]: any }
-    config?: object
+    headers?: { [key: string]: any },
+    config?: { [key: string]: any }
 }
 
-type GroupHandler = (
+export interface RequestConfig {
+    method: Methods,
+    headers: RequestData["headers"],
+    [key: string]: any
+}
+
+export interface ResponseData {
+    status: number,
+    body?: { [key: string]: any },
+    headers?: { [key: string]: any }
+}
+
+export type GroupHandler = (
     query: { [key: string]: any },
     group?: (slug: string, h: GroupHandler) => ({ [key: string]: any })
 ) => ({ [ key: string ]: any })
 
 
 
-class Http {
+export default class Http {
     protected baseURL: HttpArgs["baseURL"];
     protected headers: HttpArgs["headers"];
     protected config: HttpArgs["config"];
 
-    constructor({ baseURL, headers = {}, config = { camelizeResponse: false, decamelizeRequest: false } }: HttpArgs) {
+    constructor({ baseURL, headers = {}, config = {} }: HttpArgs) {
         this.baseURL = !baseURL.startsWith("http://") && !baseURL.startsWith("https://") ? `https://${baseURL}` : baseURL;
         this.headers = { 'Content-type': 'application/json', ...headers };
         this.config = config;
@@ -50,31 +60,33 @@ class Http {
         return `${protocol}://${domainFiltredParts.join('/')}${lastElm}`  
     }
 
-    public request(slug: string = '', { method = Methods.GET, data = {}, headers = {}, config = {} }: RequestData) {
+    public request(slug: string = '', { method = Methods.GET, data = {}, headers = {}, config = {} }: RequestData): Promise<ResponseData> {
         const likeGET = [ Methods.GET, Methods.HEAD ],
             baseURL = Http.filterSlashes(`${this.baseURL}/${slug}`),
-            url: string = likeGET.includes(method) ? `${baseURL}?${ data instanceof FormData ? '' : new URLSearchParams(this.decamelizeRequestData(data)).toString()}` : baseURL,
-            requestConfig: { [key: string]: any } = { method, headers: { ...this.headers, ...headers }, ...this.config, ...config };
+            { method: handledMethod, data: handledData, headers: handledHeaders, config: handledConfig } = this.preHandleRequest({ method, data, headers, config }),
+            url: string = likeGET.includes(handledMethod || Methods.GET) ? `${baseURL}?${ handledData instanceof FormData ? '' : new URLSearchParams(handledData).toString()}` : baseURL,
+            requestConfig: RequestConfig = { method: handledMethod || Methods.GET, headers: { ...this.headers, ...handledHeaders }, ...this.config, ...handledConfig };
             if(!likeGET.includes(method)) {
-                const requestData = data instanceof FormData ? data : JSON.stringify(this.decamelizeRequestData(data));
+                const requestData = data instanceof FormData ? data : JSON.stringify(data);
                 requestConfig.body = requestData;
             }
+            const self: Http = this;
         return new Promise((resolve, reject) => {
             fetch(url, requestConfig).then(async (response) => {
                 const result = await response.json(),
-                    res = { ...response, status: response.status, headers: response.headers, body: this.camelizeResponseData(result) };
+                    res = self.preHandlerResponse({ ...response, status: response.status, headers: response.headers, body: result });
                 if(!response.ok) return reject(res);
                 resolve(res);
             }).catch(e => reject(e));
         });
     }
 
-    protected camelizeResponseData(data: { [key: string]: any }): { [key: string]: any } {
-        return this.config?.camelizeResponse ? camelizeObject(data) : data;
+    protected preHandleRequest(request: RequestData): RequestData {
+        return request;
     }
 
-    protected decamelizeRequestData(data: { [key: string]: any }): { [key: string]: any } {
-        return this.config?.decamelizeRequest && data ? decamelizeObject(data) : data
+    protected preHandlerResponse(response: ResponseData): ResponseData {
+        return response;
     }
 
     public get(slug: string = '', config: RequestData = {}) { return this.request(slug, { ...config, method: Methods.GET }); }
@@ -99,5 +111,3 @@ class Http {
         return handler(query, group);
     }
 }
-
-export default Http;

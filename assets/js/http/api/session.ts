@@ -5,7 +5,7 @@ class AuthHTTP extends ApiHTTP {
         super({ baseURL: "session" });
     }
 
-    create(data: {}) {
-        return this.post("", data);
+    create(data: FormData) {
+        return this.post("", { data });
     }
 }

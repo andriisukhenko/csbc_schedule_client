@@ -1,5 +1,6 @@
 import Http from "~/assets/js/http";
-import type { HttpArgs } from "~/assets/js/http";
+import type { HttpArgs, RequestData } from "~/assets/js/http";
+import { decamelizeObject, camelizeObject } from "~/assets/js/helpers";
 
 export class ApiHTTP extends Http {
     constructor(args: HttpArgs) {
@@ -8,6 +9,15 @@ export class ApiHTTP extends Http {
 
     check() {
         return this.get("");
+    }
+
+    protected preHandleRequest(request: RequestData): RequestData {
+        if (request.data && !(request.data instanceof FormData)) request.data = decamelizeObject(request.data);
+        return request
+    }
+    
+    protected preHandlerResponse(response: ResponseData): ResponseData {
+        
     }
 }
 
