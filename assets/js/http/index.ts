@@ -17,7 +17,7 @@ export interface HttpArgs {
 
 export interface RequestData {
     method?: Methods,
-    data?: { [key: string]: any } | FormData,
+    data?: { [key: string]: any } | FormData | URLSearchParams,
     headers?: { [key: string]: any },
     config?: { [key: string]: any }
 }
@@ -48,7 +48,7 @@ export default class Http {
 
     constructor({ baseURL, headers = {}, config = {} }: HttpArgs) {
         this.baseURL = !baseURL.startsWith("http://") && !baseURL.startsWith("https://") ? `https://${baseURL}` : baseURL;
-        this.headers = { 'Content-type': 'application/json', ...headers };
+        this.headers = { 'Content-Type': 'application/json', ...headers };
         this.config = config;
     }
 
@@ -66,15 +66,17 @@ export default class Http {
             { method: handledMethod, data: handledData, headers: handledHeaders, config: handledConfig } = this.preHandleRequest({ method, data, headers, config }),
             url: string = likeGET.includes(handledMethod || Methods.GET) ? `${baseURL}?${ handledData instanceof FormData ? '' : new URLSearchParams(handledData).toString()}` : baseURL,
             requestConfig: RequestConfig = { method: handledMethod || Methods.GET, headers: { ...this.headers, ...handledHeaders }, ...this.config, ...handledConfig };
+            console.log(requestConfig)
             if(!likeGET.includes(method)) {
-                const requestData = data instanceof FormData ? data : JSON.stringify(data);
+                const requestData = data instanceof FormData || data instanceof URLSearchParams ? data : JSON.stringify(data);
                 requestConfig.body = requestData;
             }
+            console.log(requestConfig);
             const self: Http = this;
         return new Promise((resolve, reject) => {
             fetch(url, requestConfig).then(async (response) => {
                 const result = await response.json(),
-                    res = self.preHandlerResponse({ ...response, status: response.status, headers: response.headers, body: result });
+                    res = self.preHandleResponse({ ...response, status: response.status, headers: response.headers, body: result });
                 if(!response.ok) return reject(res);
                 resolve(res);
             }).catch(e => reject(e));
@@ -85,7 +87,7 @@ export default class Http {
         return request;
     }
 
-    protected preHandlerResponse(response: ResponseData): ResponseData {
+    protected preHandleResponse(response: ResponseData): ResponseData {
         return response;
     }
 

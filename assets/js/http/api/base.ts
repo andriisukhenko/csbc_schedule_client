@@ -1,10 +1,10 @@
 import Http from "~/assets/js/http";
-import type { HttpArgs, RequestData } from "~/assets/js/http";
+import type { HttpArgs, RequestData, ResponseData } from "~/assets/js/http";
 import { decamelizeObject, camelizeObject } from "~/assets/js/helpers";
 
 export class ApiHTTP extends Http {
     constructor(args: HttpArgs) {
-        super({ ...args, config: { camelizeResponse: true, decamelizeRequest: true, ...args.config || {} }, baseURL: `http://localhost:8000/api/${args.baseURL}` });
+        super({ ...args, baseURL: `http://localhost:8000/api/${args.baseURL}` });
     }
 
     check() {
@@ -16,8 +16,9 @@ export class ApiHTTP extends Http {
         return request
     }
     
-    protected preHandlerResponse(response: ResponseData): ResponseData {
-        
+    protected preHandleResponse(response: ResponseData): ResponseData {
+        if(response.body) response.body = camelizeObject(response.body);
+        return response;
     }
 }
 
