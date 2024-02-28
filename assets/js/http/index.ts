@@ -1,3 +1,5 @@
+import { camelizeObject, decamelizeObject } from "~/assets/js/helpers";
+
 enum Methods {
     GET = 'GET',
     POST = 'POST',
@@ -9,10 +11,10 @@ enum Methods {
     TRACE = 'TRACE'
 }
 
-interface HttpArgs {
+export interface HttpArgs {
     baseURL: string,
     headers?: { [key: string]: any },
-    config?: object
+    config?: { [key: string]: any }
 }
 
 interface RequestData {
@@ -30,11 +32,11 @@ type GroupHandler = (
 
 
 class Http {
-    protected baseURL: string;
-    protected headers: object;
-    protected config: object;
+    protected baseURL: HttpArgs["baseURL"];
+    protected headers: HttpArgs["headers"];
+    protected config: HttpArgs["config"];
 
-    constructor({ baseURL, headers = {}, config = {} }: HttpArgs) {
+    constructor({ baseURL, headers = {}, config = { camelizeResponse: false, decamelizeRequest: false } }: HttpArgs) {
         this.baseURL = !baseURL.startsWith("http://") && !baseURL.startsWith("https://") ? `https://${baseURL}` : baseURL;
         this.headers = { 'Content-type': 'application/json', ...headers };
         this.config = config;
@@ -51,20 +53,28 @@ class Http {
     public request(slug: string = '', { method = Methods.GET, data = {}, headers = {}, config = {} }: RequestData) {
         const likeGET = [ Methods.GET, Methods.HEAD ],
             baseURL = Http.filterSlashes(`${this.baseURL}/${slug}`),
-            url: string = likeGET.includes(method) ? `${baseURL}?${ data instanceof FormData ? '' : new URLSearchParams(data).toString()}` : baseURL,
+            url: string = likeGET.includes(method) ? `${baseURL}?${ data instanceof FormData ? '' : new URLSearchParams(this.decamelizeRequestData(data)).toString()}` : baseURL,
             requestConfig: { [key: string]: any } = { method, headers: { ...this.headers, ...headers }, ...this.config, ...config };
             if(!likeGET.includes(method)) {
-                const requestData = data instanceof FormData ? data : JSON.stringify(data);
+                const requestData = data instanceof FormData ? data : JSON.stringify(this.decamelizeRequestData(data));
                 requestConfig.body = requestData;
             }
         return new Promise((resolve, reject) => {
             fetch(url, requestConfig).then(async (response) => {
                 const result = await response.json(),
-                    res = { ...response, status: response.status, headers: response.headers, body: result };
+                    res = { ...response, status: response.status, headers: response.headers, body: this.camelizeResponseData(result) };
                 if(!response.ok) return reject(res);
                 resolve(res);
             }).catch(e => reject(e));
         });
+    }
+
+    protected camelizeResponseData(data: { [key: string]: any }): { [key: string]: any } {
+        return this.config?.camelizeResponse ? camelizeObject(data) : data;
+    }
+
+    protected decamelizeRequestData(data: { [key: string]: any }): { [key: string]: any } {
+        return this.config?.decamelizeRequest && data ? decamelizeObject(data) : data
     }
 
     public get(slug: string = '', config: RequestData = {}) { return this.request(slug, { ...config, method: Methods.GET }); }
