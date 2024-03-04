@@ -66,7 +66,6 @@ export default class Http {
             { method: handledMethod, data: handledData, headers: handledHeaders, config: handledConfig } = await this.preHandleRequest({ method, data, headers, config }),
             url: string = likeGET.includes(handledMethod || Methods.GET) ? `${baseURL}?${ handledData instanceof FormData ? '' : new URLSearchParams(handledData).toString()}` : baseURL,
             requestConfig: RequestConfig = { method: handledMethod || Methods.GET, headers: { ...this.headers, ...handledHeaders }, ...this.config, ...handledConfig };
-            console.log(requestConfig)
             if(!likeGET.includes(method)) {
                 const requestData = data instanceof FormData || data instanceof URLSearchParams ? data : JSON.stringify(data);
                 requestConfig.body = requestData;

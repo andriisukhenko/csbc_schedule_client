@@ -1,20 +1,21 @@
-import { EventHandler, EventHandlerRequest, setResponseStatus, H3Event, EventHandlerResponse } from 'h3';
-import { useCookie } from 'nuxt/app';
+import { EventHandler, EventHandlerRequest, setResponseStatus, H3Event, EventHandlerResponse, setCookie, parseCookies } from 'h3';
 import Auth from '~/assets/js/auth';
-import session from '~/assets/js/http/api/session';
+import { SessionHTTP } from '~/assets/js/http/api/session';
 
-interface EventAuthHandler<Request extends EventHandlerRequest = EventHandlerRequest, Response extends EventHandlerResponse = EventHandlerResponse> extends EventHandler {
-    (event: H3Event<Request>, auth: Auth): Response 
-}
+type EventAuthHandler<T extends EventHandlerRequest, D> = (event: H3Event<T>, auth: Auth) => EventHandlerResponse
 
 export const defaultResponseHandler = <T extends EventHandlerRequest, D> (handler: EventAuthHandler<T, D>): EventHandler<T, D> => defineEventHandler<T>(async (event) => {
     try {
-        const test = useCookie("test")
-        test.value = "andrii";
-        const response: any = await handler(event),
+        const response: any = await handler(
+            event,
+            new Auth(
+                (name, value, settings) => setCookie(event, name, value, settings),
+                parseCookies(event),
+                new SessionHTTP()
+            )
+        ),
             status = response?.status || 200;
         setResponseStatus(event, status);
-        console.log(test);
         return response.body;
     } catch (err: any) {
         const status = err?.status || 500;

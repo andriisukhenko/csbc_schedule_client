@@ -15,9 +15,13 @@ export class ApiHTTP extends Http {
         return this.get("");
     }
 
-    protected preHandleRequest(request: RequestData): Promise<RequestData> {
+    protected async preHandleRequest(request: RequestData): Promise<RequestData> {
         if (request.data && !(request.data instanceof FormData)) request.data = decamelizeObject(request.data);
-        return Promise.resolve(request)
+        if (this.auth) {
+            const accesToken = await this.auth.getAccessToken();
+            if (accesToken) request.headers = { ...request.headers || {}, 'Authorization': `Bearer ${accesToken.token}` };
+        }
+        return Promise.resolve(request);
     }
     
     protected preHandleResponse(response: ResponseData): Promise<ResponseData> {

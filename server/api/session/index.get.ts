@@ -1,7 +1,7 @@
 import { defaultResponseHandler } from "~/server/utils/responseHandler";
+import { SessionHTTP } from "~/assets/js/http/api/session";
 
 export default defineEventHandler(defaultResponseHandler(async (event, auth) => {
-    const body = await readBody(event);
-    await auth.login(body.username, body.password);
-    return body;
+    const sessionHTTP = new SessionHTTP(auth);
+    return sessionHTTP.read();
 }));
