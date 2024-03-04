@@ -1,24 +1,28 @@
 import Http from "~/assets/js/http";
 import type { HttpArgs, RequestData, ResponseData } from "~/assets/js/http";
 import { decamelizeObject, camelizeObject } from "~/assets/js/helpers";
+import Auth from "~/assets/js/auth";
 
 export class ApiHTTP extends Http {
-    constructor(args: HttpArgs) {
+    private auth: Auth | null;
+
+    constructor(args: HttpArgs, auth: Auth | null = null) {
         super({ ...args, baseURL: `http://localhost:8000/api/${args.baseURL}` });
+        this.auth = auth;
     }
 
     check() {
         return this.get("");
     }
 
-    protected preHandleRequest(request: RequestData): RequestData {
+    protected preHandleRequest(request: RequestData): Promise<RequestData> {
         if (request.data && !(request.data instanceof FormData)) request.data = decamelizeObject(request.data);
-        return request
+        return Promise.resolve(request)
     }
     
-    protected preHandleResponse(response: ResponseData): ResponseData {
+    protected preHandleResponse(response: ResponseData): Promise<ResponseData> {
         if(response.body) response.body = camelizeObject(response.body);
-        return response;
+        return Promise.resolve(response);
     }
 }
 

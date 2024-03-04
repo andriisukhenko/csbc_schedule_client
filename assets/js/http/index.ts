@@ -60,10 +60,10 @@ export default class Http {
         return `${protocol}://${domainFiltredParts.join('/')}${lastElm}`  
     }
 
-    public request(slug: string = '', { method = Methods.GET, data = {}, headers = {}, config = {} }: RequestData): Promise<ResponseData> {
+    public async request(slug: string = '', { method = Methods.GET, data = {}, headers = {}, config = {} }: RequestData): Promise<ResponseData> {
         const likeGET = [ Methods.GET, Methods.HEAD ],
             baseURL = Http.filterSlashes(`${this.baseURL}/${slug}`),
-            { method: handledMethod, data: handledData, headers: handledHeaders, config: handledConfig } = this.preHandleRequest({ method, data, headers, config }),
+            { method: handledMethod, data: handledData, headers: handledHeaders, config: handledConfig } = await this.preHandleRequest({ method, data, headers, config }),
             url: string = likeGET.includes(handledMethod || Methods.GET) ? `${baseURL}?${ handledData instanceof FormData ? '' : new URLSearchParams(handledData).toString()}` : baseURL,
             requestConfig: RequestConfig = { method: handledMethod || Methods.GET, headers: { ...this.headers, ...handledHeaders }, ...this.config, ...handledConfig };
             console.log(requestConfig)
@@ -71,24 +71,23 @@ export default class Http {
                 const requestData = data instanceof FormData || data instanceof URLSearchParams ? data : JSON.stringify(data);
                 requestConfig.body = requestData;
             }
-            console.log(requestConfig);
             const self: Http = this;
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             fetch(url, requestConfig).then(async (response) => {
                 const result = await response.json(),
-                    res = self.preHandleResponse({ ...response, status: response.status, headers: response.headers, body: result });
+                    res = await self.preHandleResponse({ ...response, status: response.status, headers: response.headers, body: result });
                 if(!response.ok) return reject(res);
                 resolve(res);
             }).catch(e => reject(e));
         });
     }
 
-    protected preHandleRequest(request: RequestData): RequestData {
-        return request;
+    protected preHandleRequest(request: RequestData): Promise<RequestData> {
+        return Promise.resolve(request);
     }
 
-    protected preHandleResponse(response: ResponseData): ResponseData {
-        return response;
+    protected preHandleResponse(response: ResponseData): Promise<ResponseData> {
+        return Promise.resolve(response);
     }
 
     public get(slug: string = '', config: RequestData = {}) { return this.request(slug, { ...config, method: Methods.GET }); }

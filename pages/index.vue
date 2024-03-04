@@ -13,6 +13,6 @@ export default { name: "MainPage" }
 <script lang="ts" setup>
 const login = () => {
     const { data, error } = useFetch("/api/session", { method: "POST", body: { username: "andreysuha2@gmail.com", password: "123123123" } })
-    console.log(data, error);
+    console.log(data.value);
 }
 </script>
