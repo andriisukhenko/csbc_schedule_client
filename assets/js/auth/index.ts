@@ -1,4 +1,5 @@
 import { SessionHTTP } from "~/assets/js/http/api/session";
+import type { ResponseData } from "~/assets/js/http";
 
 export interface Token {
     token: string,
@@ -26,7 +27,7 @@ export default class Auth {
     }
 
     private setToken(tokenName: string, tokenValue: Token | null): Promise<null> {
-        const cookieExpired = tokenValue ? new Date(`${tokenValue.expiredAt} UTC`) : new Date();
+        const cookieExpired = tokenValue ? new Date(`${tokenValue.expiredAt}Z`) : new Date();
         this.setCookie(tokenName, JSON.stringify(tokenValue), { httpOnly: true, expires: cookieExpired });
         return Promise.resolve(null);
     }
@@ -44,18 +45,17 @@ export default class Auth {
     }
 
     public setRefreshToken(token: Token | null): Promise<null> {
-        console.log("set refresh", token);
         return this.setToken(this.refreshTokenCookieName, token);
     }
 
-    public async login(username: string, password: string): Promise<void> {
+    public async login(username: string, password: string): Promise<ResponseData> {
         return this.session.create(username, password)
-            .then(async ({ body }) => {
-                if(body) {
-                    console.log(body);
-                    await this.setAccessToken(body.access);
-                    await this.setRefreshToken(body.refresh);
+            .then(async (resp) => {
+                if(resp.body) {
+                    await this.setAccessToken(resp.body.access);
+                    await this.setRefreshToken(resp.body.refresh);
                 } else throw Error("Auth request failed!");
+                return resp;
             })
     }
 }
