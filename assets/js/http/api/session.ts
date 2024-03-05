@@ -13,6 +13,14 @@ export class SessionHTTP extends ApiHTTP {
     }
 
     read(): Promise<ResponseData> {
-        return this.get('');
+        return this.get("");
+    }
+
+    update(refreshToken: string): Promise<ResponseData> {
+        return this.put("", { headers: { "Authorization": `Bearer ${refreshToken}` } });
+    }
+
+    del(): Promise<ResponseData> {
+        return this.delete("");
     }
 }

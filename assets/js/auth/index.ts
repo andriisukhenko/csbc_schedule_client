@@ -32,7 +32,13 @@ export default class Auth {
         return Promise.resolve(null);
     }
 
-    public getAccessToken(): Promise<Token | null> {
+    public async getAccessToken(): Promise<Token | null> {
+        if(!this.cookie[this.accessTokenCookieName]) {
+            const resp = await this.refreshAccessToken();
+            if (resp?.body) {
+                return resp.body.access;
+            } else return Promise.resolve(null);
+        }
         return Promise.resolve(this.cookie[this.accessTokenCookieName] ? JSON.parse(this.cookie[this.accessTokenCookieName]) : null);
     }
 
@@ -46,6 +52,24 @@ export default class Auth {
 
     public setRefreshToken(token: Token | null): Promise<null> {
         return this.setToken(this.refreshTokenCookieName, token);
+    }
+
+    public refreshAccessToken(): Promise<ResponseData | null> {
+        return new Promise(async (resolve, reject) => {
+            const refreshToken = await this.getRefreshToken();
+            if(refreshToken) {
+                try {
+                    const resp = await this.session.update(refreshToken.token);
+                    if(resp.body) {
+                        await this.setAccessToken(resp.body.access);
+                        await this.setRefreshToken(resp.body.refresh);
+                        resolve(resp);
+                    } else throw Error('Refresh failed');
+                } catch (e) {
+                    reject(e)
+                }
+            } else reject({ error: "Refresh token not found!" });
+        });
     }
 
     public async login(username: string, password: string): Promise<ResponseData> {

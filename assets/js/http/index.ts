@@ -73,7 +73,7 @@ export default class Http {
             const self: Http = this;
         return new Promise(async (resolve, reject) => {
             fetch(url, requestConfig).then(async (response) => {
-                const result = await response.json(),
+                const result = response.body ? await response.json() : {},
                     res = await self.preHandleResponse({ ...response, status: response.status, headers: response.headers, body: result });
                 if(!response.ok) return reject(res);
                 resolve(res);
